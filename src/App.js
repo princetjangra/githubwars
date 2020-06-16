@@ -23,7 +23,9 @@ class PlayerCard extends React.Component {
               // background: "url(" + this.props.playerData.avatar_url + ")",
             }
           ></div>
-          <h2>Player</h2>
+          <h2>
+            {this.props.playerData.name ? this.props.playerData.name : "Player"}
+          </h2>
           <div className="war-result">
             <div>
               <span>Forks</span>
@@ -137,7 +139,6 @@ class App extends React.Component {
     const searchUrl = `https://api.github.com/users/${username}`;
 
     if (this.cancel) this.cancel.cancel();
-
     this.cancel = axios.CancelToken.source();
 
     axios
@@ -155,9 +156,11 @@ class App extends React.Component {
 
   fetchStarred = (username, num) => {
     const searchUrl = `https://api.github.com/users/${username}/starred`;
-    console.log(searchUrl);
 
-    axios.get(searchUrl).then((res) => {
+    if (this.cancel) this.cancel.cancel();
+    this.cancel = axios.CancelToken.source();
+
+    axios.get(searchUrl, { cancelToken: this.cancel.token }).then((res) => {
       const length = res.data.length;
       num === 1
         ? this.setState({ stars1: length })
@@ -169,8 +172,10 @@ class App extends React.Component {
     const player1 = this.state.player1;
     const player2 = this.state.player2;
     // if (player1) {
-    const p1data = this.fetchUser(player1, 1);
+    // const p1data = this.fetchUser(player1, 1);
+    // const p2data = this.fetchUser(player2, 2);
     this.fetchStarred(player1, 1);
+    this.fetchStarred(player2, 1);
     // }
     // const p2data = this.fetchUser(player2);
     // console.log(p)
