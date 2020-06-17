@@ -6,9 +6,8 @@ const Results = (props) => {
   return (
     <div className="war-result">
       <div>
-        <span>Forks</span>
-        {props.playerData.name}
-        {console.log(props.playerData)}
+        <span>Followers</span>
+        {props.playerData.followers}
       </div>
       <div>
         <span>Repositories</span>
@@ -22,29 +21,29 @@ const Results = (props) => {
   );
 };
 
+const Winner = () => {
+  return <div className="winner-tag">Winner</div>;
+};
+
 class PlayerCard extends React.Component {
   render() {
     const { results } = this.props;
 
-    const profileImage = this.props.playerData.avatar_url
+    const profileImage = this.props.playerData.profileUrl
       ? {
-          backgroundImage: "url(" + this.props.playerData.avatar_url + ")",
-          backgroundSize: "contain",
+          backgroundImage: "url(" + this.props.playerData.profileUrl + ")",
         }
-      : { backgroundImage: "#b2ffe6", backgroundSize: "contain" };
+      : { backgroundImage: "#b2ffe6" };
+
+    const playerCardClasses =
+      this.props.win === true ? "playerCard winner" : "playerCard notWinner";
 
     return (
-      <div className="playerCard">
+      <div className={playerCardClasses}>
+        {this.props.win === true ? <Winner /> : ""}
         <div className="card-content">
-          <div
-            className="profile-image"
-            style={
-              profileImage
-              // background: "url(" + this.props.playerData.avatar_url + ")",
-            }
-          ></div>
+          <div className="profile-image" style={profileImage}></div>
           <h2>{this.props.war ? this.props.playerData.name : "Player"}</h2>
-          {/* {console.log(this.props.playerData)} */}
           {this.props.war ? (
             <Results playerData={this.props.playerData} />
           ) : (
@@ -86,16 +85,20 @@ class App extends React.Component {
     results2: {},
     player1res: {
       name: "",
+      followers: 0,
       public_repos: 0,
       stars: 0,
+      profileUrl: "",
     },
     player2res: {
       name: "",
+      followers: 0,
       public_repos: 0,
       stars: 0,
+      profileUrl: "",
     },
-    // stars1: 0,
-    // stars2: 0,
+    win1: false,
+    win2: false,
     war: false,
   };
 
@@ -151,74 +154,136 @@ class App extends React.Component {
       });
   };
 
-  fetchUser = (username, num) => {
+  fetchUser = async (username, num) => {
     const searchUrl = `https://api.github.com/users/${username}`;
 
     // if (this.cancel) this.cancel.cancel();
     // this.cancel = axios.CancelToken.source();
 
+    // axios
+    const starr = axios.get(`https://api.github.com/users/${username}/starred`);
+    const user = axios.get(searchUrl);
     axios
-      // .get(searchUrl, { cancelToken: this.cancel.token })
-      .get(searchUrl)
-      .then((res) => {
-        const userData = res.data;
-        // console.log(userData);
-        num === 1
-          ? this.setState({
-              player1res: {
-                name: userData.name,
-                public_repos: userData.public_repos,
-              },
-            })
-          : this.setState({
-              player2res: {
-                name: userData.name,
-                public_repos: userData.public_repos,
-              },
-            });
-      })
+      .all([starr, user])
+      .then(
+        axios.spread((...res) => {
+          const length = res[0].data.length;
+          const name = res[1].data.name;
+          const followers = res[1].data.followers;
+          const public_repos = res[1].data.public_repos;
+          const profileUrl = res[1].data.avatar_url;
+
+          num === 1
+            ? this.setState({
+                player1res: {
+                  name: name,
+                  followers: followers,
+                  public_repos: public_repos,
+                  profileUrl: profileUrl,
+                  stars: length,
+                },
+              })
+            : this.setState({
+                player2res: {
+                  name: name,
+                  followers: followers,
+                  public_repos: public_repos,
+                  profileUrl: profileUrl,
+                  stars: length,
+                },
+              });
+        })
+      )
+      // .get(searchUrl)
+      // .then((res) => {
+      //   const userData = res.data;
+      //   // console.log(userData);
+      //   // const length = await
+      //   // this.fetchStarred(username, num);
+      //   num === 1
+      //     ? this.setState({
+      //         player1res: {
+      //           name: userData.name,
+      //           followers: userData.followers,
+      //           public_repos: userData.public_repos,
+      //           stars: length,
+      //         },
+      //       })
+      //     : this.setState({
+      //         player2res: {
+      //           name: userData.name,
+      //           followers: userData.followers,
+      //           public_repos: userData.public_repos,
+      //           stars: length,
+      //         },
+      //       });
+
+      //   // this.fetchStarred(player2, 2);
+      // })
       .catch((err) => console.log(err));
   };
 
-  fetchStarred = (username, num) => {
-    const searchUrl = `https://api.github.com/users/${username}/starred`;
+  // fetchStarred = (username, num) => {
+  //   const searchUrl = `https://api.github.com/users/${username}/starred`;
 
-    // if (this.cancel) this.cancel.cancel();
-    // this.cancel = axios.CancelToken.source();
+  //   axios
+  //     .get(searchUrl)
+  //     .then((res) => {
+  //       const length = res.data.length;
+  //       return length;
+  //       // num === 1
+  //       //   ? this.setState({ player1res: { stars: length } })
+  //       //   : this.setState({ player2res: { stars: length } });
+  //     })
+  //     .catch((err) => console.log(err));
+  // };
 
-    // axios.get(searchUrl, { cancelToken: this.cancel.token }).then((res) => {
-    axios.get(searchUrl).then((res) => {
-      const length = res.data.length;
-      num === 1
-        ? this.setState({ player1res: { stars: length } })
-        : this.setState({ player2res: { stars: length } });
-    });
-  };
+  start = async () => {
+    if (this.state.war) {
+      // this.setState({ war: false });
+      this.setState({
+        query1: "",
+        query2: "",
+        player1: "",
+        player2: "",
+        player1res: { profileUrl: "" },
+        player2res: { profileUrl: "" },
+        results1: {},
+        results2: {},
+        war: false,
+        win1: false,
+        win2: false,
+      });
+    } else {
+      this.setState({ war: true });
+      // this.setState({
+      //   query1: "",
+      //   query2: "",
+      //   player1: "",
+      //   player2: "",
+      //   player1res: {},
+      //   player2res: {},
+      //   results1: {},
+      //   results2: {},
+      //   war: true,
+      //   win1: false,
+      //   win2: false,
+      // });
 
-  start = () => {
-    this.state.war
-      ? this.setState({ war: false })
-      : this.setState({ war: true });
+      const player1 = this.state.player1;
+      const player2 = this.state.player2;
 
-    const player1 = this.state.player1;
-    const player2 = this.state.player2;
+      await this.fetchUser(player1, 1);
+      await this.fetchUser(player2, 2);
 
-    this.fetchUser(player1, 1);
-    this.fetchUser(player2, 2);
+      const foll1 = this.state.player1res.followers;
+      const foll2 = this.state.player2res.followers;
 
-    // console.log("fetched users");
+      console.log(foll1, foll2);
 
-    this.fetchStarred(player1, 1);
-    this.fetchStarred(player2, 1);
-
-    // const p2data = this.fetchUser(player2);
-    // console.log(p)
-    // this.setState({
-    //   player1res: { name: p1data.name, public_repos: p1data.public_repos },
-    // });
-    // this.setState({
-    //   player2res: { name: p2data.name, public_repos: p2data.public_repos },
-    // });
+      if (foll1 > foll2) this.setState({ win1: true, win2: false });
+      else this.setState({ win1: false, win2: true });
+    }
   };
 
   render() {
@@ -238,6 +303,7 @@ class App extends React.Component {
                 playerData={this.state.player1res}
                 // stars={this.state.stars1}
                 war={this.state.war}
+                win={this.state.win1}
               />
 
               <PlayerCard
@@ -248,6 +314,7 @@ class App extends React.Component {
                 playerData={this.state.player2res}
                 // stars={this.state.stars2}
                 war={this.state.war}
+                win={this.state.win2}
               />
             </div>
             <button className="startWar" onClick={this.start}>
