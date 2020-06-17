@@ -2,6 +2,21 @@ import React from "react";
 import axios from "axios";
 import "./App.scss";
 
+const Loading = () => {
+  return (
+    <div className="loading">
+      <p>Loading results</p>
+      <div className="dots">
+        <div className="dot one"></div>
+        <div className="dot two"></div>
+        <div className="dot three"></div>
+        <div className="dot four"></div>
+        <div className="dot five"></div>
+      </div>
+    </div>
+  );
+};
+
 const Results = (props) => {
   return (
     <div className="war-result">
@@ -58,7 +73,7 @@ class PlayerCard extends React.Component {
                 onChange={this.props.query}
                 autoComplete="off"
               />
-              <ul>
+              <ul class="searchResults">
                 {results.length
                   ? results.map((item) => (
                       <li key={item.id} onClick={this.props.setPlayer}>
@@ -100,6 +115,7 @@ class App extends React.Component {
     win1: false,
     win2: false,
     war: false,
+    loading: false,
   };
 
   cancel = "";
@@ -157,10 +173,6 @@ class App extends React.Component {
   fetchUser = async (username, num) => {
     const searchUrl = `https://api.github.com/users/${username}`;
 
-    // if (this.cancel) this.cancel.cancel();
-    // this.cancel = axios.CancelToken.source();
-
-    // axios
     const starr = axios.get(`https://api.github.com/users/${username}/starred`);
     const user = axios.get(searchUrl);
     axios
@@ -192,6 +204,10 @@ class App extends React.Component {
                   stars: length,
                 },
               });
+          if (num === 2) {
+            this.setState({ loading: false });
+            this.declareWinner();
+          }
         })
       )
       // .get(searchUrl)
@@ -240,7 +256,6 @@ class App extends React.Component {
 
   start = async () => {
     if (this.state.war) {
-      // this.setState({ war: false });
       this.setState({
         query1: "",
         query2: "",
@@ -253,22 +268,10 @@ class App extends React.Component {
         war: false,
         win1: false,
         win2: false,
+        loading: false,
       });
     } else {
-      this.setState({ war: true });
-      // this.setState({
-      //   query1: "",
-      //   query2: "",
-      //   player1: "",
-      //   player2: "",
-      //   player1res: {},
-      //   player2res: {},
-      //   results1: {},
-      //   results2: {},
-      //   war: true,
-      //   win1: false,
-      //   win2: false,
-      // });
+      this.setState({ war: true, loading: true });
 
       const player1 = this.state.player1;
       const player2 = this.state.player2;
@@ -276,14 +279,21 @@ class App extends React.Component {
       await this.fetchUser(player1, 1);
       await this.fetchUser(player2, 2);
 
-      const foll1 = this.state.player1res.followers;
-      const foll2 = this.state.player2res.followers;
+      // this.fetchUser(player1, 1)
+      //   .then(() => this.fetchUser(player2, 2))
+      //   .then(() => declareWinner());
 
-      console.log(foll1, foll2);
-
-      if (foll1 > foll2) this.setState({ win1: true, win2: false });
-      else this.setState({ win1: false, win2: true });
+      // declareWinner();
     }
+  };
+  declareWinner = () => {
+    const foll1 = this.state.player1res.followers;
+    const foll2 = this.state.player2res.followers;
+
+    console.log(this.state);
+
+    if (foll1 > foll2) this.setState({ win1: true, win2: false });
+    else this.setState({ win1: false, win2: true });
   };
 
   render() {
@@ -294,32 +304,38 @@ class App extends React.Component {
             ./Github<span>Wars</span>
           </a> */}
           <div className="container">
-            <div className="arena">
-              <PlayerCard
-                setPlayer={this.setPlayer1}
-                query={this.getInput1}
-                value={this.state.query1}
-                results={this.state.results1}
-                playerData={this.state.player1res}
-                // stars={this.state.stars1}
-                war={this.state.war}
-                win={this.state.win1}
-              />
+            {this.state.loading ? (
+              <Loading />
+            ) : (
+              <>
+                <div className="arena">
+                  <PlayerCard
+                    setPlayer={this.setPlayer1}
+                    query={this.getInput1}
+                    value={this.state.query1}
+                    results={this.state.results1}
+                    playerData={this.state.player1res}
+                    // stars={this.state.stars1}
+                    war={this.state.war}
+                    win={this.state.win1}
+                  />
 
-              <PlayerCard
-                setPlayer={this.setPlayer2}
-                query={this.getInput2}
-                value={this.state.query2}
-                results={this.state.results2}
-                playerData={this.state.player2res}
-                // stars={this.state.stars2}
-                war={this.state.war}
-                win={this.state.win2}
-              />
-            </div>
-            <button className="startWar" onClick={this.start}>
-              {this.state.war ? "START AGAIN" : "START WAR"}
-            </button>
+                  <PlayerCard
+                    setPlayer={this.setPlayer2}
+                    query={this.getInput2}
+                    value={this.state.query2}
+                    results={this.state.results2}
+                    playerData={this.state.player2res}
+                    // stars={this.state.stars2}
+                    war={this.state.war}
+                    win={this.state.win2}
+                  />
+                </div>
+                <button className="startWar" onClick={this.start}>
+                  {this.state.war ? "START AGAIN" : "START WAR"}
+                </button>
+              </>
+            )}
           </div>
 
           {/* <a
